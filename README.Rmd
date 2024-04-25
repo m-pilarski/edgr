@@ -1,0 +1,92 @@
+---
+output: github_document
+---
+
+<!-- README.md is generated from README.Rmd. Please edit that file -->
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.path = "man/figures/README-",
+  out.width = "100%"
+)
+```
+
+# edgr
+
+<!-- badges: start -->
+<!-- badges: end -->
+
+The goal of {edgr} is to help you analyze 10-K filings from the SEC's EDGAR database.
+
+## Installation
+
+You can install the development version of {edgr} from [GitHub](https://github.com/) with:
+
+```{r, message=FALSE, warning=FALSE}
+# install.packages("remotes")
+remotes::install_github("m-pilarski/edgr")
+```
+
+## Example
+
+```{r, cache=FALSE, message=FALSE}
+library(tidyverse)
+library(edgr)
+
+# Set the number of workers for parallel processing
+options("edgr.n_workers"=3)
+```
+
+Get the document index files for the years 2020 to 2023
+
+```{r, cache=TRUE}
+doc_index_data <- gather_doc_index_data(
+  .years=2021:2023, .data_dir=fs::dir_create(here::here("README_files/data/"))
+)
+
+doc_index_data
+```
+
+{edgr} includes a scraped dataset `com_indu_data` that includes information on companies' sectors.
+
+```{r}
+com_indu_data
+
+com_indu_data |> distinct(indu_sic, indu_title)
+```
+
+You can use it to get the CIKs for companies from sectors that are relevant for your analysis.
+
+```{r, cache=TRUE}
+com_indu_health_data <- com_indu_data |> filter(
+  str_detect(indu_sic, "^80\\d\\d$")
+)
+
+com_indu_health_data
+
+com_indu_health_data |> distinct(indu_sic, indu_title)
+```
+
+Collect and clean the 10-Ks for the selected companies and years.
+
+```{r}
+doc_clean_data <- doc_index_data |> 
+  # keep only companies from the relevant sectors
+  semi_join(com_indu_health_data, by=join_by(com_cik)) |>
+  # for this example: only use the first 10 of the matched companies
+  filter(com_cik %in% unique(com_cik)[1:10]) |> 
+  gather_doc_clean_data()
+```
+
+The processed data is now stored in the directory that you set above.
+
+```{r}
+fs::dir_tree(doc_clean_data %@% "data_dir", recurse=TRUE)
+```
+
+
+# License
+
+{edgr} is distributed under the MIT License. See the [LICENSE](./LICENSE) file for details.
