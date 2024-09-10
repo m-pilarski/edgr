@@ -170,13 +170,15 @@ doc_parse_data |>
     # .doc_parse <<- .doc_parse; stop()
     .doc_parse |> 
       prep_doc_clean_body_string() |> 
+      sentimentr::get_sentences() |> 
       sentimentr::sentiment() |> 
       summarize(
         sentence_count = n(), 
         word_count = sum(word_count),
         sentiment_mean = mean(sentiment),
-        sentiment_mean = sd(sentiment)
-      )
+        sentiment_sd = sd(sentiment)
+      ) |> 
+      as_tibble()
   }, .n_workers=1) |> 
   glimpse()
 #> The result of `.doc_stat_body_fn` is not valid.
@@ -200,7 +202,7 @@ doc_parse_data |>
 #> The result of `.doc_stat_body_fn` is not valid.
 #> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
 #> Rows: 10
-#> Columns: 12
+#> Columns: 13
 #> $ com_cik                        <chr> "885074", "941020", "1136174", "1301611…
 #> $ com_name                       <chr> "AUTHENTIDATE HOLDING CORP", "GENELINK …
 #> $ doc_an                         <chr> "0001193125-15-342743", "0001144204-12-…
@@ -212,7 +214,8 @@ doc_parse_data |>
 #> $ doc_parse_body_string_rel_path <list> "doc_parse_body_string_files/885074/00…
 #> $ sentence_count                 <int> 3533, 1392, 8015, 8485, 7123, 3642, 331…
 #> $ word_count                     <int> 120059, 30802, 209337, 237350, 192472, …
-#> $ sentiment_mean                 <dbl> 0.2341361, 0.2435872, 0.2279123, 0.2387…
+#> $ sentiment_mean                 <dbl> 0.16784392, 0.15887404, 0.14250165, 0.1…
+#> $ sentiment_sd                   <dbl> 0.2341361, 0.2435872, 0.2279123, 0.2387…
 ```
 
 # License

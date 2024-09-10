@@ -102,13 +102,15 @@ doc_parse_data |>
     # .doc_parse <<- .doc_parse; stop()
     .doc_parse |> 
       prep_doc_clean_body_string() |> 
+      sentimentr::get_sentences() |> 
       sentimentr::sentiment() |> 
       summarize(
         sentence_count = n(), 
         word_count = sum(word_count),
         sentiment_mean = mean(sentiment),
-        sentiment_mean = sd(sentiment)
-      )
+        sentiment_sd = sd(sentiment)
+      ) |> 
+      as_tibble()
   }, .n_workers=1) |> 
   glimpse()
 ```
