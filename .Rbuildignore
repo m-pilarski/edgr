@@ -10,3 +10,4 @@ examples/
 ^README\.Rmd$
 ^.here$
 ^README_cache$
+^README_files$

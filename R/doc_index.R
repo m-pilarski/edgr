@@ -45,6 +45,8 @@ gather_doc_index_data <- function(
     purrr::transpose() |>
     burrr::best_map(function(..pars){
 
+      # ..pars <<- ..pars
+
       ..doc_index_dir <- fs::dir_create(fs::file_temp())
       ..doc_index_zip_file <- fs::path(..doc_index_dir, "master.zip")
       ..doc_index_idx_file <- fs::path(..doc_index_dir, "master.idx")
@@ -72,6 +74,8 @@ gather_doc_index_data <- function(
           stringr::str_count(...line, "\\|") == 4
         }) |>
         stringr::str_c(collapse="\n") |>
+        # stringi::stri_enc_toutf8() |>
+        base::charToRaw() |>
         readr::read_delim(delim="|", progress=FALSE, show_col_types=FALSE) |>
         dplyr::mutate(
           com_cik = as.character(CIK),

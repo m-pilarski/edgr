@@ -46,11 +46,21 @@ with_retries <- function(.function, .return_error=FALSE){
         .error_is_connection <- stringr::str_detect(
           .error$message, "(Timeout was reached)|(Could not resolve host)"
         )
+        .error_is_forbidden <- stringr::str_detect(
+          .error$message, "HTTP 403 Forbidden"
+        )
         if(.error_is_connection){
           warning(
             format(lubridate::now()), ": connection failure - retrying in 30s",
             call.=FALSE
           )
+          Sys.sleep(30)
+        }else if(.error_is_forbidden){
+          warning(
+            format(lubridate::now()), ": changing user agent - retrying in 30s",
+            call.=FALSE
+          )
+          options("edgr.user_agent"=random_user_agent())
           Sys.sleep(30)
         }else if(.return_error){
           warning(.error$message)
@@ -132,7 +142,10 @@ get_storage_rel_path <- function(.file_set, .com_cik, .doc_an){
 
   .file_ext <- dplyr::case_when(
     .file_set %in% c("doc_clean_body_string") ~ "txt",
-    .file_set %in% c("doc_raw_string", "doc_clean_head_data") ~ "qs",
+    .file_set %in% c(
+      "doc_raw_string", "doc_clean_head_data", "doc_clean_head_data",
+      "doc_parse_head_data", "doc_parse_body_string"
+    ) ~ "qs",
     TRUE ~ NA_character_
   )
 
@@ -179,3 +192,11 @@ set_data_dir <- function(.doc_data, .data_dir){
   return(.doc_data)
 
 }
+
+#' Title
+#'
+#' @return ...
+#' @export
+#'
+#' @examples NULL
+random_user_agent <- function(){base::sample(user_agent_list, size=1)}

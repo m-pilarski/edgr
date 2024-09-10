@@ -5,5 +5,7 @@ globalVariables(c(
   "sen_alpha_char_share", "sen_alpha_chunk_count", "sen_digit_char_share",
   "sen_digit_chunk_count", "sen_digit_chunk_seq_len_max", "sen_has_checkmark",
   "sen_id", "sen_is_valid", "sen_line_nchar", "sen_or_follow_has_checkmark",
-  "sen_text"
+  "sen_text", "doc_document_has_pdf", "doc_document_raw",
+  "doc_document_type_is_drop", "end", "start", ".doc_aggregate_fn",
+  ".doc_clean_head_data"
 ))

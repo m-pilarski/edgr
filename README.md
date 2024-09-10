@@ -26,31 +26,37 @@ library(tidyverse)
 library(edgr)
 
 # Set the number of workers for parallel processing
-options("edgr.n_workers"=3)
+options("edgr.n_workers"=1)
+# Set the number of workers for parallel processing
+options("edgr.user_agent"=paste0(
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) ",
+  "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 ",
+  "Safari/604.1"
+))
 ```
 
 Get the document index files for the years 2020 to 2023
 
 ``` r
 doc_index_data <- gather_doc_index_data(
-  .years=2021:2023, .data_dir=fs::dir_create(here::here("README_files/data/"))
+  .years=2010:2015, .data_dir=fs::dir_create(here::here("README_files/data/"))
 )
 
 doc_index_data
-#> # A tibble: 22,339 × 6
+#> # A tibble: 50,572 × 6
 #>    com_cik com_name              doc_an doc_form_type doc_date_filed doc_raw_url
 #>    <chr>   <chr>                 <chr>  <chr>         <date>         <chr>      
-#>  1 1000209 MEDALLION FINANCIAL … 00015… 10-K          2021-03-16     https://ww…
-#>  2 1000228 HENRY SCHEIN INC      00010… 10-K          2021-02-17     https://ww…
-#>  3 1000229 CORE LABORATORIES N V 00015… 10-K          2021-02-08     https://ww…
-#>  4 1000232 KENTUCKY BANCSHARES … 00015… 10-K          2021-03-03     https://ww…
-#>  5 1000298 IMPAC MORTGAGE HOLDI… 00015… 10-K          2021-03-12     https://ww…
-#>  6 1000623 SCHWEITZER MAUDUIT I… 00010… 10-K          2021-03-01     https://ww…
-#>  7 1000683 BLONDER TONGUE LABOR… 00012… 10-K          2021-03-25     https://ww…
-#>  8 1000694 NOVAVAX INC           00010… 10-K          2021-03-01     https://ww…
-#>  9 1000697 WATERS CORP /DE/      00011… 10-K          2021-02-24     https://ww…
-#> 10 1000753 INSPERITY, INC.       00010… 10-K          2021-02-12     https://ww…
-#> # ℹ 22,329 more rows
+#>  1 1000180 SANDISK CORP          00010… 10-K          2010-02-25     https://ww…
+#>  2 1000209 MEDALLION FINANCIAL … 00011… 10-K          2010-03-12     https://ww…
+#>  3 1000228 HENRY SCHEIN INC      00010… 10-K          2010-02-23     https://ww…
+#>  4 1000229 CORE LABORATORIES N V 00010… 10-K          2010-02-19     https://ww…
+#>  5 1000230 OPTICAL CABLE CORP    00011… 10-K          2010-01-29     https://ww…
+#>  6 1000232 KENTUCKY BANCSHARES … 00011… 10-K          2010-03-31     https://ww…
+#>  7 1000278 PACIFICHEALTH LABORA… 00011… 10-K          2010-03-30     https://ww…
+#>  8 1000298 IMPAC MORTGAGE HOLDI… 00010… 10-K          2010-03-16     https://ww…
+#>  9 1000623 SCHWEITZER MAUDUIT I… 00011… 10-K          2010-03-08     https://ww…
+#> 10 1000683 BLONDER TONGUE LABOR… 00013… 10-K          2010-03-25     https://ww…
+#> # ℹ 50,562 more rows
 ```
 
 {edgr} includes a scraped dataset `com_indu_data` that includes
@@ -133,101 +139,80 @@ com_indu_health_data |> distinct(indu_sic, indu_title)
 Collect and clean the 10-Ks for the selected companies and years.
 
 ``` r
-doc_clean_data <- doc_index_data |> 
+doc_parse_data <- doc_index_data |> 
   # keep only companies from the relevant sectors
   semi_join(com_indu_health_data, by=join_by(com_cik)) |>
-  # for this example: only use the first 10 of the matched companies
-  filter(com_cik %in% unique(com_cik)[1:10]) |> 
-  gather_doc_clean_data()
+  # download raw filings from the SEC
+  gather_doc_raw_data() |> 
+  # parse the raw filings and store body and head into separate files
+  gather_doc_parse_data()
 ```
 
 The processed data is now stored in the directory that you set above.
 
 ``` r
-fs::dir_tree(doc_clean_data %@% "data_dir", recurse=TRUE)
-#> /home/moritz/Documents/R-Packages/edgr/README_files/data
-#> ├── doc_clean_body_string_files
-#> │   ├── 1014739
-#> │   │   ├── 0001014739-21-000011.txt
-#> │   │   ├── 0001014739-22-000009.txt
-#> │   │   └── 0001014739-23-000009.txt
-#> │   ├── 1022079
-#> │   │   ├── 0001022079-21-000029.txt
-#> │   │   ├── 0001022079-22-000027.txt
-#> │   │   └── 0001022079-23-000018.txt
-#> │   ├── 1043000
-#> │   │   ├── 0001564590-21-017126.txt
-#> │   │   ├── 0001628280-22-009364.txt
-#> │   │   └── 0001628280-23-009942.txt
-#> │   ├── 1044378
-#> │   │   ├── 0000950170-23-013109.txt
-#> │   │   ├── 0001564590-21-017097.txt
-#> │   │   └── 0001564590-22-013599.txt
-#> │   ├── 1047335
-#> │   │   ├── 0001437749-21-003415.txt
-#> │   │   ├── 0001437749-22-003787.txt
-#> │   │   └── 0001437749-23-003830.txt
-#> │   ├── 1108109
-#> │   │   ├── 0001564590-21-006686.txt
-#> │   │   ├── 0001564590-22-005570.txt
-#> │   │   └── 0001564590-23-002038.txt
-#> │   ├── 1124140
-#> │   │   ├── 0001124140-21-000029.txt
-#> │   │   ├── 0001124140-22-000022.txt
-#> │   │   └── 0001124140-23-000014.txt
-#> │   ├── 1125376
-#> │   │   ├── 0001125376-21-000020.txt
-#> │   │   ├── 0001125376-22-000019.txt
-#> │   │   └── 0001125376-23-000018.txt
-#> │   ├── 1136174
-#> │   │   ├── 0001628280-21-004260.txt
-#> │   │   ├── 0001628280-22-009356.txt
-#> │   │   └── 0001628280-23-011799.txt
-#> │   └── 1138476
-#> │       ├── 0001185185-21-000438.txt
-#> │       ├── 0001185185-22-000436.txt
-#> │       └── 0001185185-23-000301.txt
-#> └── doc_clean_head_data_files
-#>     ├── 1014739
-#>     │   ├── 0001014739-21-000011.qs
-#>     │   ├── 0001014739-22-000009.qs
-#>     │   └── 0001014739-23-000009.qs
-#>     ├── 1022079
-#>     │   ├── 0001022079-21-000029.qs
-#>     │   ├── 0001022079-22-000027.qs
-#>     │   └── 0001022079-23-000018.qs
-#>     ├── 1043000
-#>     │   ├── 0001564590-21-017126.qs
-#>     │   ├── 0001628280-22-009364.qs
-#>     │   └── 0001628280-23-009942.qs
-#>     ├── 1044378
-#>     │   ├── 0000950170-23-013109.qs
-#>     │   ├── 0001564590-21-017097.qs
-#>     │   └── 0001564590-22-013599.qs
-#>     ├── 1047335
-#>     │   ├── 0001437749-21-003415.qs
-#>     │   ├── 0001437749-22-003787.qs
-#>     │   └── 0001437749-23-003830.qs
-#>     ├── 1108109
-#>     │   ├── 0001564590-21-006686.qs
-#>     │   ├── 0001564590-22-005570.qs
-#>     │   └── 0001564590-23-002038.qs
-#>     ├── 1124140
-#>     │   ├── 0001124140-21-000029.qs
-#>     │   ├── 0001124140-22-000022.qs
-#>     │   └── 0001124140-23-000014.qs
-#>     ├── 1125376
-#>     │   ├── 0001125376-21-000020.qs
-#>     │   ├── 0001125376-22-000019.qs
-#>     │   └── 0001125376-23-000018.qs
-#>     ├── 1136174
-#>     │   ├── 0001628280-21-004260.qs
-#>     │   ├── 0001628280-22-009356.qs
-#>     │   └── 0001628280-23-011799.qs
-#>     └── 1138476
-#>         ├── 0001185185-21-000438.qs
-#>         ├── 0001185185-22-000436.qs
-#>         └── 0001185185-23-000301.qs
+fs::dir_info(get_data_dir(doc_parse_data), recurse=FALSE)
+#> # A tibble: 3 × 18
+#>   path         type   size permissions modification_time   user  group device_id
+#>   <fs::path>   <fct> <fs:> <fs::perms> <dttm>              <chr> <chr>     <dbl>
+#> 1 …tring_files dire…    4K rwxr-xr-x   2024-09-09 16:50:53 mori… mori…     65024
+#> 2 …_data_files dire…    4K rwxr-xr-x   2024-09-09 16:50:53 mori… mori…     65024
+#> 3 …tring_files dire…    4K rwxr-xr-x   2024-09-09 16:35:48 mori… mori…     65024
+#> # ℹ 10 more variables: hard_links <dbl>, special_device_id <dbl>, inode <dbl>,
+#> #   block_size <dbl>, blocks <dbl>, flags <int>, generation <dbl>,
+#> #   access_time <dttm>, change_time <dttm>, birth_time <dttm>
+```
+
+``` r
+doc_parse_data |> 
+  slice_sample(n=10) |> 
+  gather_doc_stat_body_data(function(.doc_parse){
+    # .doc_parse <<- .doc_parse; stop()
+    .doc_parse |> 
+      prep_doc_clean_body_string() |> 
+      sentimentr::sentiment() |> 
+      summarize(
+        sentence_count = n(), 
+        word_count = sum(word_count),
+        sentiment_mean = mean(sentiment),
+        sentiment_mean = sd(sentiment)
+      )
+  }, .n_workers=1) |> 
+  glimpse()
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> The result of `.doc_stat_body_fn` is not valid.
+#> ℹ It has to be a data frame with one row and can not contain column names that are already present in `.doc_data`
+#> Rows: 10
+#> Columns: 12
+#> $ com_cik                        <chr> "885074", "941020", "1136174", "1301611…
+#> $ com_name                       <chr> "AUTHENTIDATE HOLDING CORP", "GENELINK …
+#> $ doc_an                         <chr> "0001193125-15-342743", "0001144204-12-…
+#> $ doc_form_type                  <chr> "10-K", "10-K", "10-K", "10-K", "10-K",…
+#> $ doc_date_filed                 <date> 2015-10-13, 2012-05-14, 2012-03-30, 20…
+#> $ doc_raw_url                    <chr> "https://www.sec.gov/Archives/edgar/dat…
+#> $ doc_raw_string_rel_path        <list> "doc_raw_string_files/885074/000119312…
+#> $ doc_parse_head_data_rel_path   <list> "doc_parse_head_data_files/885074/0001…
+#> $ doc_parse_body_string_rel_path <list> "doc_parse_body_string_files/885074/00…
+#> $ sentence_count                 <int> 3533, 1392, 8015, 8485, 7123, 3642, 331…
+#> $ word_count                     <int> 120059, 30802, 209337, 237350, 192472, …
+#> $ sentiment_mean                 <dbl> 0.2341361, 0.2435872, 0.2279123, 0.2387…
 ```
 
 # License

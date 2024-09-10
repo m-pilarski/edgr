@@ -1,5 +1,7 @@
 ---
 output: github_document
+editor_options: 
+  chunk_output_type: console
 ---
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
@@ -24,7 +26,7 @@ The goal of {edgr} is to help you analyze 10-K filings from the SEC's EDGAR data
 
 You can install the development version of {edgr} from [GitHub](https://github.com/) with:
 
-```{r, message=FALSE, warning=FALSE}
+```{r, message=FALSE, warning=FALSE, eval=FALSE}
 # install.packages("remotes")
 remotes::install_github("m-pilarski/edgr")
 ```
@@ -36,14 +38,20 @@ library(tidyverse)
 library(edgr)
 
 # Set the number of workers for parallel processing
-options("edgr.n_workers"=3)
+options("edgr.n_workers"=1)
+# Set the number of workers for parallel processing
+options("edgr.user_agent"=paste0(
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 17_6_1 like Mac OS X) ",
+  "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.6 Mobile/15E148 ",
+  "Safari/604.1"
+))
 ```
 
 Get the document index files for the years 2020 to 2023
 
 ```{r, cache=TRUE}
 doc_index_data <- gather_doc_index_data(
-  .years=2021:2023, .data_dir=fs::dir_create(here::here("README_files/data/"))
+  .years=2010:2015, .data_dir=fs::dir_create(here::here("README_files/data/"))
 )
 
 doc_index_data
@@ -57,7 +65,7 @@ com_indu_data
 com_indu_data |> distinct(indu_sic, indu_title)
 ```
 
-You can use it to get the CIKs for companies from sectors that are relevant for your analysis.
+You can use it to get the CIKs for companies from sectors that are relevant for your analysis. 
 
 ```{r, cache=TRUE}
 com_indu_health_data <- com_indu_data |> filter(
@@ -72,19 +80,39 @@ com_indu_health_data |> distinct(indu_sic, indu_title)
 Collect and clean the 10-Ks for the selected companies and years.
 
 ```{r}
-doc_clean_data <- doc_index_data |> 
+doc_parse_data <- doc_index_data |> 
   # keep only companies from the relevant sectors
   semi_join(com_indu_health_data, by=join_by(com_cik)) |>
-  # for this example: only use the first 10 of the matched companies
-  filter(com_cik %in% unique(com_cik)[1:10]) |> 
-  gather_doc_clean_data()
+  # download raw filings from the SEC
+  gather_doc_raw_data() |> 
+  # parse the raw filings and store body and head into separate files
+  gather_doc_parse_data()
 ```
 
 The processed data is now stored in the directory that you set above.
 
 ```{r}
-fs::dir_tree(doc_clean_data %@% "data_dir", recurse=TRUE)
+fs::dir_info(get_data_dir(doc_parse_data), recurse=FALSE)
 ```
+
+```{r, warning=FALSE}
+doc_parse_data |> 
+  slice_sample(n=10) |> 
+  gather_doc_stat_body_data(function(.doc_parse){
+    # .doc_parse <<- .doc_parse; stop()
+    .doc_parse |> 
+      prep_doc_clean_body_string() |> 
+      sentimentr::sentiment() |> 
+      summarize(
+        sentence_count = n(), 
+        word_count = sum(word_count),
+        sentiment_mean = mean(sentiment),
+        sentiment_mean = sd(sentiment)
+      )
+  }, .n_workers=1) |> 
+  glimpse()
+```
+
 
 
 # License
