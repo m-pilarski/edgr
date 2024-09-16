@@ -9,15 +9,7 @@ prep_doc_parse_list <- function(.doc_raw_string){
 
   # remove document nodes of certain types or with pdf ()
   .doc_document_type_drop_regex <- stringi::stri_c(
-    "^(?i)(",
-    stringi::stri_c(
-      c(
-        "ZIP", "EXCEL", "XML", "GRAPHIC", "COVER", "XBRL", "RENDERED XBRL",
-        "JSON", "EX\\-"
-      ),
-      collapse="|"
-    ),
-    ")"
+    "^(?i)(ZIP|EXCEL|XML|GRAPHIC|COVER|XBRL|RENDERED XBRL|JSON|EX\\-|TABLE)"
   )
   .doc_filter_document_idx_mat <-
     .doc_raw_string |>
@@ -110,17 +102,18 @@ prep_doc_parse_list <- function(.doc_raw_string){
     xml2::xml_find_all("//*[starts-with(name(), 'ix:')]") |>
     xml2::xml_remove()
 
-  # # convert html tables to json lists and enclose in <EDGR:TABLE_JSON> tags
-  # .doc_xml |>
-  #   xml2::xml_find_all("//*/ancestor::table[last()]") |>
-  #   purrr::walk(\(.node){
-  #     .table_json <- jsonlite::toJSON(xml2::as_list(.node))
-  #     xml2::xml_remove(xml2::xml_children(.node))
-  #     xml2::xml_name(.node) <- "div"
-  #     xml2::xml_text(.node) <- stringi::stri_c(
-  #       "<EDGR:TABLE_JSON>", .table_json, "</EDGR:TABLE_JSON>"
-  #     )
-  #   })
+  # convert html tables to json lists and enclose in <EDGR:TABLE_JSON> tags
+  .doc_xml |>
+    xml2::xml_find_all("//*/ancestor::table[last()]") |>
+    xml2::xml_remove() # JUST REMOVE FOR NOW
+    # purrr::walk(\(.node){
+    #   .table_json <- jsonlite::toJSON(xml2::as_list(.node))
+    #   xml2::xml_remove(xml2::xml_children(.node))
+    #   xml2::xml_name(.node) <- "div"
+    #   xml2::xml_text(.node) <- stringi::stri_c(
+    #     "<EDGR:TABLE_JSON>", .table_json, "</EDGR:TABLE_JSON>"
+    #   )
+    # })
 
   # add two newlines to the end of all <div> and <p>
   .doc_xml |>
@@ -159,7 +152,7 @@ gather_doc_parse_data <- function(.doc_data){
 
   checkmate::assert_tibble(.doc_data)
 
-  .data_dir <- get_data_dir(.doc_data)
+  .data_dir <<- get_data_dir(.doc_data)
 
   .doc_data <-
     .doc_data |>
@@ -167,7 +160,7 @@ gather_doc_parse_data <- function(.doc_data){
     dplyr::group_split() |>
     burrr::best_map(\(..row_data){
 
-      # ..row_data <<- ..row_data; stop()
+      ..row_data <<- ..row_data#; stop()
 
       ..doc_raw_string_rel_path <- get_storage_rel_path(
         .file_set="doc_raw_string", .com_cik=..row_data[["com_cik"]],

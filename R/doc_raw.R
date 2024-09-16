@@ -9,8 +9,11 @@ prep_doc_raw_string <- function(.doc_raw_url){
     .doc_raw_response <-
       httr2::request(.doc_raw_url) |>
       httr2::req_timeout(60) |>
-      httr2::req_headers(`user-agent`=getOption("edgr.user_agent")) |>
-      (with_retries(httr2::req_perform))()
+      (with_retries(\(...req){
+        ...req |>
+          httr2::req_headers(`user-agent`=getOption("edgr.user_agent")) |>
+          httr2::req_perform()
+      }))()
 
     if(httr2::resp_status(.doc_raw_response) != 200){
       stop(httr2::resp_status_desc(.doc_raw_response), call.=FALSE)

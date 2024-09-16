@@ -59,8 +59,11 @@ gather_doc_index_data <- function(
         ) |>
         httr2::req_url_path_append("master.zip") |>
         httr2::req_timeout(60) |>
-        httr2::req_headers(`user-agent`=getOption("edgr.user_agent")) |>
-        (with_retries(httr2::req_perform))(path=..doc_index_zip_file)
+        (with_retries(\(...req){
+          ...req |>
+            httr2::req_headers(`user-agent`=getOption("edgr.user_agent")) |>
+            httr2::req_perform(path=..doc_index_zip_file)
+        }))()
 
       if(httr2::resp_status(..doc_index_resp) != 200){
         stop(httr2::resp_status_desc(..doc_index_chunk_dl), call.=FALSE)

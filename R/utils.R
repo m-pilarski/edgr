@@ -61,7 +61,7 @@ with_retries <- function(.function, .return_error=FALSE){
             call.=FALSE
           )
           options("edgr.user_agent"=random_user_agent())
-          Sys.sleep(30)
+          Sys.sleep(10)
         }else if(.return_error){
           warning(.error$message)
           .result <<- simpleError(.error$message)
